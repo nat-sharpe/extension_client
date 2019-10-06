@@ -10,10 +10,21 @@
 
   const buildDashBoard = () => {
     const container = document.createElement("div");
+    container.style.height = "145px"
+    container.style.width = "350px"
     container.style.fontSize = "14px"
-    const title = document.createElement("h3"); 
-    title.innerText = "Fresh Finder";
+    container.style.display= "flex"
+    container.style.flexDirection = "column"
+    container.style.justifyContent = "space-between"
+    container.style.margin = "10px 0px 10px 0px"
+    container.style.padding = "10px 10px 12px 15px"
+    container.style.border = "thin solid green"
+
+    const title = document.createElement("h4"); 
+    title.innerText = "Fresh Finder ☀️";
     title.className = "guaranteed-delivery__text";
+    title.style.margin = "0";
+    title.style.color = "green";
 
 
     const resultsBox = document.createElement("div");
@@ -37,7 +48,6 @@
     resultsBox.appendChild(spacer);
     resultsBox.appendChild(stale);
 
-
     const ageBox = document.createElement("div"); 
     const ageMessage = document.createElement("span"); 
     ageMessage.innerText = `Max age (days):  `;
@@ -51,16 +61,18 @@
       const newMaxAge = parseInt(event.target.value);
       state.maxAge = newMaxAge;
       localStorage.setItem("maxAge", newMaxAge);
+      updateStaleDisplay();
     };
     ageBox.appendChild(ageMessage);
     ageBox.appendChild(ageInput);
 
-
+    staleBox = document.createElement("div");
     const staleMessage = document.createElement("span"); 
     staleMessage.innerText = `Stale item display: `;
 
     const fadeInput = document.createElement("input"); 
     fadeInput.type = "radio";
+    fadeInput.name = "stale";
     fadeInput.value = "fade";
     if (!state.hideStale) {
       fadeInput.checked = true;
@@ -72,10 +84,11 @@
       updateStaleDisplay();
     };
     const fadeMessage = document.createElement("span"); 
-    fadeMessage.innerText = `Fade  `;
+    fadeMessage.innerText = `Fade `;
 
     const hideInput = document.createElement("input"); 
     hideInput.type = "radio";
+    hideInput.name = "stale";
     hideInput.value = "hide";
     if (state.hideStale) {
       hideInput.checked = true;
@@ -87,7 +100,14 @@
       updateStaleDisplay();
     };
     const hideMessage= document.createElement("span"); 
-    hideMessage.innerText = `Hide  `;
+    hideMessage.innerText = `Hide `;
+
+    staleBox.appendChild(staleMessage);
+    staleBox.appendChild(fadeInput);
+    staleBox.appendChild(fadeMessage);
+    staleBox.appendChild(hideInput);
+    staleBox.appendChild(hideMessage);
+
 
     const emailBox = document.createElement("div");
     emailBox.style.fontSize = "12px"
@@ -99,11 +119,7 @@
     container.appendChild(title);
     container.appendChild(resultsBox);
     container.appendChild(ageBox);
-    container.appendChild(staleMessage);
-    container.appendChild(fadeInput);
-    container.appendChild(fadeMessage);
-    container.appendChild(hideInput);
-    container.appendChild(hideMessage);
+    container.appendChild(staleBox);
     container.appendChild(emailBox);
     return container;
   };
@@ -118,6 +134,8 @@
   updateStaleDisplay = () => {
     const items = state.items;
     const ages = state.ages;
+    let newFreshItems = 0;
+    let newStaleItems = 0;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.id) {
@@ -132,15 +150,20 @@
               item.style.display = "block"; 
               item.style.opacity = "0.25";
             }
-            state.staleItems++;
+            newStaleItems++;
           } else {
-            state.freshItems++;
+            item.style.display = "block"; 
+            item.style.opacity = "1";
+            newFreshItems++;
           }
         } catch(e) {
           console.log(e, item);
         }
       }
     }
+    state.freshItems = newFreshItems;
+    state.staleItems = newStaleItems;
+    updateDashBoard();
   };
 
   const getAges = (itemUrls) => {
@@ -222,6 +245,11 @@
         }
       }
     }
+    // const resultsString = document.getElementsByClassName("srp-controls__count-heading")[0].innerText;
+    // const resultsCount = resultsString.split(" ").includes("of") 
+    //   ? resultsString.split("-")[1].split(" ")[0]
+    //   : resultsString.split(" ")[0];
+    // console.log(resultsCount);
     updateDashBoard();
     window.scroll(0,1);
     window.scroll(0,-1);
@@ -236,6 +264,7 @@
     const dashBoard = buildDashBoard();
     srpMainContent.appendChild(dashBoard);
     const itemUrls = buildItemUrls(items);
+    console.log(itemUrls);
     state.items = items;
     getAges(itemUrls)
   };
