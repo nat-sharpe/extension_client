@@ -1,7 +1,7 @@
 {
   "name": "True New",
   "version": "1.0",
-  "description": "On eBay, only shows search results that were uploaded in the last 3 days.",
+  "description": "On eBay, only shows results that were uploaded in the last 3 days.",
   "manifest_version": 2,
   "incognito": "split",
   "permissions": ["tabs", "*://*.ebay.com/*"],

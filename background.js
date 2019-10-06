@@ -1,6 +1,150 @@
 {
-  const getAges = (itemUrls, items, maxAge) => {
-    const url = 'https://fervent-hamilton-b2d5b1.netlify.com/.netlify/functions/age';
+  const state = {
+    staleItems: 0,
+    freshItems: 0,
+    maxAge: 3,
+    hideStale: false,
+    items: [],
+    ages: {},
+  };
+
+  const buildDashBoard = () => {
+    const container = document.createElement("div");
+    container.style.fontSize = "14px"
+    const title = document.createElement("h3"); 
+    title.innerText = "Fresh Finder";
+    title.className = "guaranteed-delivery__text";
+
+
+    const resultsBox = document.createElement("div");
+    resultsBox.className = "ff-results-box";
+    resultsBox.innerText = "This page: "
+
+    const fresh = document.createElement("span"); 
+    fresh.className = "ff-fresh-items";
+    fresh.style.color = "green";
+    fresh.innerText = ` ${state.freshItems} fresh items `;
+
+    const spacer = document.createElement("span"); 
+    spacer.innerText = ` |  `;
+
+    const stale = document.createElement("span");
+    stale.className = "ff-stale-items";
+    stale.style.color = "red";
+    stale.innerText = ` ${state.staleItems} stale items`;
+
+    resultsBox.appendChild(fresh);
+    resultsBox.appendChild(spacer);
+    resultsBox.appendChild(stale);
+
+
+    const ageBox = document.createElement("div"); 
+    const ageMessage = document.createElement("span"); 
+    ageMessage.innerText = `Max age (days):  `;
+
+    const ageInput = document.createElement("input"); 
+    ageInput.type = "number";
+    ageInput.value = `${state.maxAge}`;
+    ageInput.style.width = "50px";
+    ageInput.style.fontSize = "14px";
+    ageInput.onchange = event => {
+      const newMaxAge = parseInt(event.target.value);
+      state.maxAge = newMaxAge;
+      localStorage.setItem("maxAge", newMaxAge);
+    };
+    ageBox.appendChild(ageMessage);
+    ageBox.appendChild(ageInput);
+
+
+    const staleMessage = document.createElement("span"); 
+    staleMessage.innerText = `Stale item display: `;
+
+    const fadeInput = document.createElement("input"); 
+    fadeInput.type = "radio";
+    fadeInput.value = "fade";
+    if (!state.hideStale) {
+      fadeInput.checked = true;
+    }
+    fadeInput.onchange = event => {
+      const hideStale = event.target.value === "hide" ? true : false;
+      state.hideStale = hideStale
+      localStorage.setItem("staleDisplay", event.target.value);
+      updateStaleDisplay();
+    };
+    const fadeMessage = document.createElement("span"); 
+    fadeMessage.innerText = `Fade  `;
+
+    const hideInput = document.createElement("input"); 
+    hideInput.type = "radio";
+    hideInput.value = "hide";
+    if (state.hideStale) {
+      hideInput.checked = true;
+    }
+    hideInput.onchange = event => {
+      const hideStale = event.target.value === "hide" ? true : false;
+      state.hideStale = hideStale
+      localStorage.setItem("staleDisplay", event.target.value);
+      updateStaleDisplay();
+    };
+    const hideMessage= document.createElement("span"); 
+    hideMessage.innerText = `Hide  `;
+
+    const emailBox = document.createElement("div");
+    emailBox.style.fontSize = "12px"
+    const emailMe = document.createElement("a");
+    emailMe.href = 'mailto:<nowiki>sharpe1890@gmail.com?subject=Question about Fresh Finder';
+    emailMe.innerText = "Contact Us"
+    emailBox.appendChild(emailMe);
+
+    container.appendChild(title);
+    container.appendChild(resultsBox);
+    container.appendChild(ageBox);
+    container.appendChild(staleMessage);
+    container.appendChild(fadeInput);
+    container.appendChild(fadeMessage);
+    container.appendChild(hideInput);
+    container.appendChild(hideMessage);
+    container.appendChild(emailBox);
+    return container;
+  };
+
+  const updateDashBoard = () => {
+    const fresh = document.getElementsByClassName("ff-fresh-items")[0];
+    fresh.innerText = ` ${state.freshItems} fresh items `;
+    const stale = document.getElementsByClassName("ff-stale-items")[0];
+    stale.innerText = ` ${state.staleItems} stale items`;
+  };
+
+  updateStaleDisplay = () => {
+    const items = state.items;
+    const ages = state.ages;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.id) {
+        try {
+          const urlId = item.getElementsByClassName("s-item__link")[0].href;
+          const age = ages[urlId];
+          if (age.days > state.maxAge) {
+            if (state.hideStale) {
+              item.style.display = "none"; 
+              item.style.opacity = "1";
+            } else {
+              item.style.display = "block"; 
+              item.style.opacity = "0.25";
+            }
+            state.staleItems++;
+          } else {
+            state.freshItems++;
+          }
+        } catch(e) {
+          console.log(e, item);
+        }
+      }
+    }
+  };
+
+  const getAges = (itemUrls) => {
+    const url = 'https://truenew.netlify.com/.netlify/functions/age';
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader('Content-type', 'application/json;charset=UTF-8');
@@ -8,8 +152,8 @@
       if (xhr.readyState == 4) {
         var result = JSON.parse(xhr.responseText);		
         if (result) {
-          const ages = result.datedItems;
-          addAgesToItems(items, ages, maxAge);
+          state.ages = result.datedItems;
+          addAgesToItems();
         }
       }
     }
@@ -39,8 +183,9 @@
     return itemUrls;
   };
 
-  const addAgesToItems = (items, ages, maxAge) => {
-    totalItems = items.length;
+  const addAgesToItems = () => {
+    const items = state.items;
+    const ages = state.ages;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.id) {
@@ -60,26 +205,39 @@
           const ageLabel = document.createElement("h3");
           ageLabel.innerText = message;
           item.appendChild(ageLabel);
-          if (age.days > maxAge) {
-            item.style.display = "none";
-            staleItems++;
+          if (age.days > state.maxAge) {
+            if (state.hideStale) {
+              item.style.display = "none"; 
+              item.style.opacity = "1";
+            } else {
+              item.style.display = "block"; 
+              item.style.opacity = "0.25";
+            }
+            state.staleItems++;
           } else {
-            freshItems++;
+            state.freshItems++;
           }
         } catch(e) {
           console.log(e, item);
         }
       }
     }
+    updateDashBoard();
     window.scroll(0,1);
     window.scroll(0,-1);
   }
 
   const start = () => {
+    state.maxAge = localStorage.getItem("maxAge") ? localStorage.getItem("maxAge") : state.maxAge;
+    staleDisplay = localStorage.getItem("staleDisplay") ? localStorage.getItem("staleDisplay") : state.hideStale;
+    state.hideStale = staleDisplay === "hide" ? true : false;
     const items = document.getElementById("mainContent").getElementsByClassName("s-item   ");
-    const maxAge = 3;
-    const itemUrls = buildItemUrls(items, maxAge);
-    getAges(itemUrls, items, maxAge)
+    const srpMainContent = document.getElementsByClassName("srp-controls")[0];
+    const dashBoard = buildDashBoard();
+    srpMainContent.appendChild(dashBoard);
+    const itemUrls = buildItemUrls(items);
+    state.items = items;
+    getAges(itemUrls)
   };
 
   start();
