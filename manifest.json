@@ -1,7 +1,7 @@
 {
-  "name": "True New",
-  "version": "1.0",
-  "description": "On eBay, only shows results that were uploaded in the last 3 days.",
+  "name": "Fresh Finder: Hide Relisted eBay Items",
+  "version": "1.5",
+  "description": "View upload date of items and filter by age.",
   "manifest_version": 2,
   "incognito": "split",
   "permissions": ["tabs", "*://*.ebay.com/*"],
@@ -16,5 +16,6 @@
   ],
   "browser_action": {
     "default_icon": "icon.png"
-  }
+  },
+  "short_name": "Fresh Finder"
 }

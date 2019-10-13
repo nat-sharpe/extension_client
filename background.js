@@ -6,26 +6,44 @@
     hideStale: false,
     items: [],
     ages: {},
+    on: true,
   };
 
-  const buildDashBoard = () => {
-    const container = document.createElement("div");
-    container.style.height = "145px"
-    container.style.width = "350px"
-    container.style.fontSize = "14px"
-    container.style.display= "flex"
-    container.style.flexDirection = "column"
-    container.style.justifyContent = "space-between"
-    container.style.margin = "10px 0px 10px 0px"
-    container.style.padding = "10px 10px 12px 15px"
-    container.style.border = "thin solid green"
+  const turnOn = () => {
+    state.on = true;
+    localStorage.setItem("FreshFinder", "on");
+    showControls();
+    start();
+  };
 
-    const title = document.createElement("h4"); 
-    title.innerText = "Fresh Finder ☀️";
-    title.className = "guaranteed-delivery__text";
-    title.style.margin = "0";
-    title.style.color = "green";
+  const turnOff = () => {
+    state.on = false;
+    state.staleItems = 0;
+    state.freshItems = 0;
+    localStorage.setItem("FreshFinder", "off");
+    const srpMainContent = document.getElementsByClassName("srp-controls")[0];
+    const dashBoard = document.getElementsByClassName("dashboard")[0];
+    srpMainContent.removeChild(dashBoard);
+    for (let i = 0; i < state.items.length; i++) {
+      const item = state.items[i];
+      if (item.id) {
+        item.style.display = "block";
+        item.style.opacity = "1";
+        const ageLabel = item.getElementsByClassName("age-label")[0];
+        item.removeChild(ageLabel);
+      }
+    }
+    
+    start();
+  };
 
+  const showControls = () => {
+    const controlPanel = document.createElement("div");
+    controlPanel.className = "ff-control-panel"
+    controlPanel.style.display = "flex"
+    controlPanel.style.flexDirection = "column"
+    controlPanel.style.justifyContent = "space-around"
+    controlPanel.style.height = "77%"
 
     const resultsBox = document.createElement("div");
     resultsBox.className = "ff-results-box";
@@ -42,11 +60,12 @@
     const stale = document.createElement("span");
     stale.className = "ff-stale-items";
     stale.style.color = "red";
-    stale.innerText = ` ${state.staleItems} stale items`;
+    stale.innerText = ` ${state.staleItems} stale items `;
 
-    resultsBox.appendChild(fresh);
-    resultsBox.appendChild(spacer);
     resultsBox.appendChild(stale);
+    resultsBox.appendChild(spacer);
+    resultsBox.appendChild(fresh);
+
 
     const ageBox = document.createElement("div"); 
     const ageMessage = document.createElement("span"); 
@@ -108,27 +127,86 @@
     staleBox.appendChild(hideInput);
     staleBox.appendChild(hideMessage);
 
-
-    const emailBox = document.createElement("div");
-    emailBox.style.fontSize = "12px"
+    const linkBox = document.createElement("div");
+    linkBox.style.fontSize = "12px"
+    linkBox.style.marginTop = "4px"
+    const leaveReview = document.createElement("a");
+    leaveReview.href = 'https://chrome.google.com/webstore/detail/fresh-finder-hide-re-list/jhjnmbngdjaholbfpbbofghbpfbeignc';
+    leaveReview.innerText = "Leave Review";
+    linkBox.appendChild(leaveReview);
+    const spacer2 = document.createElement("span"); 
+    spacer2.innerText = ` |  `;
+    linkBox.appendChild(spacer2);
     const emailMe = document.createElement("a");
     emailMe.href = 'mailto:<nowiki>sharpe1890@gmail.com?subject=Question about Fresh Finder';
     emailMe.innerText = "Contact Us"
-    emailBox.appendChild(emailMe);
+    linkBox.appendChild(emailMe);
 
-    container.appendChild(title);
-    container.appendChild(resultsBox);
-    container.appendChild(ageBox);
-    container.appendChild(staleBox);
-    container.appendChild(emailBox);
-    return container;
+    controlPanel.appendChild(resultsBox);
+    controlPanel.appendChild(ageBox);
+    controlPanel.appendChild(staleBox);
+    controlPanel.appendChild(linkBox);
+
+    const onOffButton = document.getElementsByClassName("ff-on-off")[0];
+    onOffButton.innerText = "Turn Off";
+    onOffButton.onclick = event => {
+      event.preventDefault();
+      turnOff();
+    };
+    const dashBoard = document.getElementsByClassName("dashboard")[0];
+    dashBoard.style.height = "145px"
+    dashBoard.appendChild(controlPanel);
+  }
+
+  const buildDashBoard = () => {
+    const dashBoard = document.createElement("div");
+    dashBoard.className = "dashboard"
+    dashBoard.style.width = "400px"
+    dashBoard.style.height = "40px";
+    dashBoard.style.fontSize = "14px"
+    dashBoard.style.display= "flex"
+    dashBoard.style.flexDirection = "column"
+    dashBoard.style.justifyContent = "space-between"
+    dashBoard.style.margin = "10px 0px 10px 0px"
+    dashBoard.style.padding = "5px 10px 12px 15px"
+    dashBoard.style.border = "thin solid green"
+
+    const headerBox = document.createElement("div");
+    headerBox.className = "fresh-finder-headerBox";
+    headerBox.style.display= "flex";
+    headerBox.style.justifyContent = "space-between";
+    headerBox.style.alignItems = "center";
+
+    const title = document.createElement("h4"); 
+    title.innerText = "Fresh Finder ☀️";
+    title.className = "guaranteed-delivery__text";
+    title.style.margin = "0";
+    title.style.color = "green";
+
+    const onOffButton = document.createElement("button");
+    onOffButton.innerText = "Turn On";
+    onOffButton.className = "ff-on-off"
+    onOffButton.style.cursor = "pointer"
+    onOffButton.style.cursor = "pointer"
+    onOffButton.style.fontSize = "12px"
+    onOffButton.style.height = "13px"
+    onOffButton.onclick = event => {
+      event.preventDefault();
+      turnOn();
+    };
+
+    headerBox.appendChild(title);
+    headerBox.appendChild(onOffButton);
+    dashBoard.appendChild(headerBox);
+
+    return dashBoard;
   };
 
   const updateDashBoard = () => {
     const fresh = document.getElementsByClassName("ff-fresh-items")[0];
     fresh.innerText = ` ${state.freshItems} fresh items `;
     const stale = document.getElementsByClassName("ff-stale-items")[0];
-    stale.innerText = ` ${state.staleItems} stale items`;
+    stale.innerText = ` ${state.staleItems} stale items `;
   };
 
   updateStaleDisplay = () => {
@@ -148,7 +226,7 @@
               item.style.opacity = "1";
             } else {
               item.style.display = "block"; 
-              item.style.opacity = "0.25";
+              item.style.opacity = "0.35";
             }
             newStaleItems++;
           } else {
@@ -227,6 +305,7 @@
           }
           const ageLabel = document.createElement("h3");
           ageLabel.innerText = message;
+          ageLabel.className = "age-label";
           item.appendChild(ageLabel);
           if (age.days > state.maxAge) {
             if (state.hideStale) {
@@ -245,28 +324,41 @@
         }
       }
     }
-    // const resultsString = document.getElementsByClassName("srp-controls__count-heading")[0].innerText;
-    // const resultsCount = resultsString.split(" ").includes("of") 
-    //   ? resultsString.split("-")[1].split(" ")[0]
-    //   : resultsString.split(" ")[0];
-    // console.log(resultsCount);
     updateDashBoard();
-    window.scroll(0,1);
-    window.scroll(0,-1);
+    // window.scroll(0,1);
+    // window.scroll(0,-1);
   }
 
   const start = () => {
+    const srpMainContent = document.getElementsByClassName("srp-controls")[0];
+    const dashBoardExists = document.getElementsByClassName("dashboard")[0];
+    if (!dashBoardExists) {
+      const dashBoard = buildDashBoard();
+      srpMainContent.appendChild(dashBoard);
+      const onStatus = localStorage.getItem("FreshFinder");
+      if (onStatus === "on") {
+        state.on = true;
+        showControls();
+      } else if (onStatus === "off") {
+        state.on = false;
+      } else {
+        state.on = true;
+        showControls();
+      }
+    }
     state.maxAge = localStorage.getItem("maxAge") ? localStorage.getItem("maxAge") : state.maxAge;
     staleDisplay = localStorage.getItem("staleDisplay") ? localStorage.getItem("staleDisplay") : state.hideStale;
     state.hideStale = staleDisplay === "hide" ? true : false;
-    const items = document.getElementById("mainContent").getElementsByClassName("s-item   ");
-    const srpMainContent = document.getElementsByClassName("srp-controls")[0];
-    const dashBoard = buildDashBoard();
-    srpMainContent.appendChild(dashBoard);
-    const itemUrls = buildItemUrls(items);
-    console.log(itemUrls);
-    state.items = items;
-    getAges(itemUrls)
+    if (state.on) {
+      const items = document.getElementById("mainContent").getElementsByClassName("s-item   ");
+      const itemUrls = buildItemUrls(items);
+      state.items = items;
+      // // Uncomment for debugging
+      // var result = netlifyDates(itemUrls);
+      // state.ages = result;
+      // addAgesToItems();
+      getAges(itemUrls)
+    }
   };
 
   start();
