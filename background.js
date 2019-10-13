@@ -30,7 +30,7 @@
         item.style.display = "block";
         item.style.opacity = "1";
         const ageLabel = item.getElementsByClassName("age-label")[0];
-        item.removeChild(ageLabel);
+        ageLabel ? item.removeChild(ageLabel) : null;
       }
     }
     
@@ -336,19 +336,16 @@
       const dashBoard = buildDashBoard();
       srpMainContent.appendChild(dashBoard);
       const onStatus = localStorage.getItem("FreshFinder");
+      state.maxAge = localStorage.getItem("maxAge") ? localStorage.getItem("maxAge") : state.maxAge;
+      staleDisplay = localStorage.getItem("staleDisplay") ? localStorage.getItem("staleDisplay") : state.hideStale;
+      state.hideStale = staleDisplay === "hide" ? true : false;
       if (onStatus === "on") {
         state.on = true;
         showControls();
-      } else if (onStatus === "off") {
-        state.on = false;
       } else {
-        state.on = true;
-        showControls();
+        state.on = false;
       }
     }
-    state.maxAge = localStorage.getItem("maxAge") ? localStorage.getItem("maxAge") : state.maxAge;
-    staleDisplay = localStorage.getItem("staleDisplay") ? localStorage.getItem("staleDisplay") : state.hideStale;
-    state.hideStale = staleDisplay === "hide" ? true : false;
     if (state.on) {
       const items = document.getElementById("mainContent").getElementsByClassName("s-item   ");
       const itemUrls = buildItemUrls(items);
