@@ -9,6 +9,96 @@
     on: true,
   };
 
+  const decodeBase64 = rawCode => {
+    // rawCode = civ3e
+    const ebayBase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~";
+    const answer = [];
+    stringChars = rawCode.split(''); // ["c", "i", "v", "3", "e"]
+    stringChars.forEach(char => {
+      var value = ebayBase64.indexOf(char); // 28, 34, 47, 55, 30
+      answer.push(value);
+    });
+    return answer; // [28, 34, 47, 55, 30]
+  };
+  
+  const getTime = arr => {
+    // arr = [28, 34, 47, 55, 30]
+    const newArr = arr.map((column, index) => {
+      // column = 28, 34, 47, 55, 30
+      const power = arr.length - index - 1; 
+      // power = 4, 3, 2, 1, 0
+      const multiplier = index < arr.length ? Math.pow(64, power) : column;
+      // multiplier = 16777216, 262144, 4096, 64, 1
+      return column * multiplier;
+    })
+    // newArr = [469762048, 8912896, 192512, 3520, 30];
+    let totalSeconds = 0;
+    newArr.forEach(segment => {
+      totalSeconds+= segment;
+    })
+    return totalSeconds; // 478,871,006
+  
+    // Note: actual Base64 encoding would turn 478871006 into "NDc4ODcxMDA2"
+    // By using a base 64 numeral system, eBay can reduce that same number to just "civ3e"
+  };					
+  
+  const calculateAge = timeCode => {
+    const nowEpoch = Math.floor(Date.now() / 1000); // 1,572,580,928 (11/01/2019)
+    const ebayEpoch = 1073741818; // The epoch time (seconds from 01/01/1970) when Ebay time began: ~ 01/10/2004 @ 1:36pm (UTC)
+    const itemTime = getTime(timeCode); // The Ebay time when item's thumbnail image was uploaded: 478,871,006 seconds from 01/10/2004
+    const itemEpoch = ebayEpoch + itemTime; // 1,073,741,818 + 478,871,006 = 1,552,612,824
+  
+    const ageInSeconds = nowEpoch - itemEpoch; // 1,572,580,928 - 1,552,612,824 = 19,968,104 seconds
+    const ageInMinutes = ageInSeconds / 60; // 332,801 minutes
+    const ageInHours = ageInMinutes / 60; // 5546 hours
+    const ageInDays = ageInHours / 24; // 92 days
+  
+    const age = {
+      minutes: Math.floor(ageInMinutes),
+      hours: Math.floor(ageInHours),
+      days: Math.floor(ageInDays),
+      uploadDate: itemEpoch,
+    }
+    return age;
+  };
+  
+  const translateDateCodes = minedItems => {
+    const datedItems = {};
+    Object.keys(minedItems).forEach(item => {
+      if (minedItems[item].imgUrl) {
+        const imgUrl = minedItems[item].imgUrl;
+        // imgUrl = https://i.ebayimg.com/images/g/UrMAAOSwrYRciv3e/s-l1600.jpg
+        const splitUrl = imgUrl.split('/');
+        const beforeIndex = splitUrl.indexOf('g');
+        const imageId = splitUrl.slice(beforeIndex+1, beforeIndex+2)[0];
+        // imageId = UrMAAOSwrYRciv3e
+        const base64Code = imageId.slice(imageId.length - 5, imageId.length);
+        // base64Code = civ3e
+        const timeCode = decodeBase64(base64Code);
+        // timeCode = [28, 34, 47, 55, 30]
+        const age = calculateAge(timeCode);
+        // age = {
+        //   minutes: 332801,
+        //   hours: 5546,
+        //   days: 92,
+        //   uploadDate: 1552612824
+        // }
+        if (minedItems[item].soldDate) {
+          const timeToSold = minedItems[item].soldDate - age.uploadDate;
+          const daysToSold = timeToSold > 0 ? Math.floor(timeToSold / 86400) : 0;
+          age.soldTime = daysToSold; 
+        }
+        datedItems[item] = age;
+      } else {
+        // if no image url
+        datedItems[item] = {
+          minutes: -1,
+        }
+      }
+    });
+    return datedItems;
+  };
+
   const turnOn = () => {
     state.on = true;
     localStorage.setItem("FreshFinder", "on");
@@ -26,7 +116,7 @@
     srpMainContent.removeChild(dashBoard);
     for (let i = 0; i < state.items.length; i++) {
       const item = state.items[i];
-      if (item.id) {
+      if (true) {
         item.style.display = "block";
         item.style.opacity = "1";
         const ageLabel = item.getElementsByClassName("age-label")[0];
@@ -189,7 +279,7 @@
     onOffButton.style.cursor = "pointer"
     onOffButton.style.cursor = "pointer"
     onOffButton.style.fontSize = "12px"
-    onOffButton.style.height = "13px"
+    onOffButton.style.height = "18px"
     onOffButton.onclick = event => {
       event.preventDefault();
       turnOn();
@@ -216,7 +306,7 @@
     let newStaleItems = 0;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      if (item.id) {
+      if (item.getElementsByClassName("s-item__link")[0]) {
         try {
           const urlId = item.getElementsByClassName("s-item__link")[0].href;
           const age = ages[urlId];
@@ -244,28 +334,16 @@
     updateDashBoard();
   };
 
-  const getAges = (itemUrls) => {
-    const url = 'https://truenew.netlify.com/.netlify/functions/age';
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", url, true);
-    xhr.setRequestHeader('Content-type', 'application/json;charset=UTF-8');
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState == 4) {
-        var result = JSON.parse(xhr.responseText);		
-        if (result) {
-          state.ages = result.datedItems;
-          addAgesToItems();
-        }
-      }
-    }
-    xhr.send(JSON.stringify(itemUrls));
+  const getAges = (minedItems) => {
+    state.ages = translateDateCodes(minedItems);
+    addAgesToItems();
   }
 
-  const buildItemUrls = (items) => {
-    const itemUrls = {};
+  const buildMinedItems = (items) => {
+    const minedItems = {};
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      if (item.id) {
+      if (item.getElementsByClassName("s-item__link")[0]) {
         try {
           const urlId = item.getElementsByClassName("s-item__link")[0].href;
           const firstImgUrl = item.getElementsByClassName("s-item__image-img")[0].src;
@@ -275,13 +353,25 @@
           if (format !== "webp") {
             imgUrl = item.getElementsByClassName("s-item__image-img")[0].dataset.src;
           }
-          itemUrls[urlId] = {imgUrl};
+          // find sold date and add it to object as well.
+          let soldDate = "";
+          if (item.getElementsByClassName("POSITIVE")[0]) {
+            try {
+              const fullSoldDate = item.getElementsByClassName("POSITIVE")[0].innerText;
+              const splitSoldDate = fullSoldDate.split("Sold ")[1];
+              const epochSoldDate = Math.floor(new Date(splitSoldDate) / 1000);
+              soldDate = epochSoldDate;
+            } catch(e) {
+              console.log(e, item);
+            }
+          }
+          minedItems[urlId] = {imgUrl, soldDate}
         } catch(e) {
           console.log(e, item);
         }
       }
     }
-    return itemUrls;
+    return minedItems;
   };
 
   const addAgesToItems = () => {
@@ -289,7 +379,7 @@
     const ages = state.ages;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      if (item.id) {
+      if (item.getElementsByClassName("s-item__link")[0]) {
         try {
           const urlId = item.getElementsByClassName("s-item__link")[0].href;
           const age = ages[urlId];
@@ -303,6 +393,13 @@
           } else {
             message = "Age unknown";
           }
+          if (age.soldTime >= 0) {
+            const soldText = age.soldTime === 1 ? "in 1 day)" : age.soldTime > 1 ? "in " + age.soldTime + " days)" : " same day)"
+            message = message + " (sold " + soldText;
+          }
+          // const completedTime = item.getElementsByClassName("s-item__ended-date")[0].innerText;
+          // const completedDateList = item.getElementsByClassName("s-gzosf5");
+          // const completedYear = completedDateList[completedDateList.length - 1].innerText;
           const ageLabel = document.createElement("h3");
           ageLabel.innerText = message;
           ageLabel.className = "age-label";
@@ -325,8 +422,6 @@
       }
     }
     updateDashBoard();
-    // window.scroll(0,1);
-    // window.scroll(0,-1);
   }
 
   const start = () => {
@@ -348,15 +443,10 @@
     }
     if (state.on) {
       const items = document.getElementById("mainContent").getElementsByClassName("s-item   ");
-      const itemUrls = buildItemUrls(items);
+      const minedItems = buildMinedItems(items);
       state.items = items;
-      // // Uncomment for debugging
-      // var result = netlifyDates(itemUrls);
-      // state.ages = result;
-      // addAgesToItems();
-      getAges(itemUrls)
+      getAges(minedItems);
     }
   };
-
   start();
 }

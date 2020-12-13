@@ -1,7 +1,7 @@
 {
-  "name": "Fresh Finder: Hide Relisted eBay Items",
-  "version": "1.8",
-  "description": "View upload date of items and filter by age.",
+  "name": "Fresh Finder - Hide old eBay items",
+  "version": "2.0",
+  "description": "See original upload date and hide by age.",
   "manifest_version": 2,
   "incognito": "split",
   "permissions": ["tabs", "*://*.ebay.com/*"],
