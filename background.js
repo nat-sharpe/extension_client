@@ -88,6 +88,9 @@
           const daysToSold = timeToSold > 0 ? Math.floor(timeToSold / 86400) : 0;
           age.soldTime = daysToSold; 
         }
+        if (minedItems[item].isUnsold) {
+          age.isUnsold = minedItems[item].isUnsold; 
+        }
         datedItems[item] = age;
       } else {
         // if no image url
@@ -355,17 +358,20 @@
           }
           // find sold date and add it to object as well.
           let soldDate = "";
-          if (item.getElementsByClassName("POSITIVE")[0]) {
+          let isTypeOne = item.getElementsByClassName("POSITIVE")[0] && item.getElementsByClassName("POSITIVE")[0].innerText[0] === "$";
+          const endedItem = isTypeOne ? item.getElementsByClassName("s-item__ended-date s-item__endedDate")[0] : item.getElementsByClassName("POSITIVE")[0];
+          const isUnsold = item.getElementsByClassName("NEGATIVE")[0] || item.getElementsByClassName("s-item__title-tag")[0] && item.getElementsByClassName("s-item__title-tag")[0].innerText.split("Ended").length > 1
+          if (endedItem && !isUnsold) {
             try {
-              const fullSoldDate = item.getElementsByClassName("POSITIVE")[0].innerText;
-              const splitSoldDate = fullSoldDate.split("Sold ")[1];
+              const fullSoldDate = endedItem.innerText;
+              const splitSoldDate = fullSoldDate.split("Sold ").length > 1 ? fullSoldDate.split("Sold ")[1] : fullSoldDate;
               const epochSoldDate = Math.floor(new Date(splitSoldDate) / 1000);
               soldDate = epochSoldDate;
             } catch(e) {
               console.log(e, item);
             }
           }
-          minedItems[urlId] = {imgUrl, soldDate}
+          minedItems[urlId] = {imgUrl, soldDate, isUnsold}
         } catch(e) {
           console.log(e, item);
         }
@@ -396,6 +402,9 @@
           if (age.soldTime >= 0) {
             const soldText = age.soldTime === 1 ? "in 1 day)" : age.soldTime > 1 ? "in " + age.soldTime + " days)" : " same day)"
             message = message + " (sold " + soldText;
+          }
+          if (age.isUnsold) {
+            message = message + " (unsold)";
           }
           // const completedTime = item.getElementsByClassName("s-item__ended-date")[0].innerText;
           // const completedDateList = item.getElementsByClassName("s-gzosf5");
